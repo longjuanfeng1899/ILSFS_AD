@@ -1,0 +1,61 @@
+CPC（Contrastive Predictive Coding）模型是一种用于自监督学习的模型，主要用于语音、图像和自然语言处理领域。下面是一个简单的使用Python实现CPC模型的示例代码：
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+
+class CPCModel(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(CPCModel, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, output_size)
+        )
+        self.gru = nn.GRU(hidden_size, hidden_size, bidirectional=True)
+        
+    def forward(self, x):
+        encoded = self.encoder(x)
+        encoded = encoded.unsqueeze(0)
+        output, hidden = self.gru(encoded)
+        return output, hidden
+
+# 训练模型
+model = CPCModel(input_size=10, hidden_size=20, output_size=5)
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+# 定义数据集
+class CPCDataset(torch.utils.data.Dataset):
+    def __init__(self, data):
+        self.data = data
+        
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        return self.data[idx]
+    
+data = [torch.randn(10) for i in range(100)]
+dataset = CPCDataset(data)
+dataloader = DataLoader(dataset, batch_size=10, shuffle=True)
+
+# 开始训练
+for epoch in range(10):
+    running_loss = 0.0
+    for i, batch in enumerate(dataloader):
+        optimizer.zero_grad()
+        output, hidden = model(batch)
+        loss = criterion(output, batch)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item()
+        
+    print('Epoch %d loss: %.3f' % (epoch + 1, running_loss / len(dataloader)))
+```
+
+在上面的示例代码中，我们定义了一个CPCModel类，它包含一个编码器和一个双向GRU层。然后我们定义了一个CPCDataset类来加载数据集，使用DataLoader来批量读取数据。在训练过程中，我们使用交叉熵损失函数和Adam优化器来优化模型。
